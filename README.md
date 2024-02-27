@@ -26,7 +26,7 @@ In the repo `labs`, you can find the notebooks for each lab session and in `solu
 
 The solutions of each lab will be uploaded after the corresponding lab lecture.
 
-<!-- 
+
 ## Exam
 
 ### Instructions
@@ -35,7 +35,7 @@ The mandatory projects are presented in lab 4 (LM) and 5 (NLU), while the option
 For each of the projects, you must write a small report following the LaTeX template in the zip folder `report_template.zip`. In particular, you have to write a mini-report of **max 1 page** (references, tables and images are excluded from the count) in which you explain all the parts of the project giving more weight to the part with higher points. **Reports longer than 1 page will not be evaluated**. The purpose of this is to give you a way to report **cleanly** the results and give you space to describe what you have done and/or the originality that you have added to the exercise. You can find more detail about the sections and relative content in the LaTeX template.
 
 ### Grading
-The final grade is based on:
+For each project, the final grade is based on:
 - Code review;
 - Report review;
 - Q&A at the exam.
@@ -68,4 +68,4 @@ To submit your work you have to fill out this [Google form](https://forms.gle/2U
 <br>
 
 ## Acknowledgements
-The notebooks that you can find here are an adaptation of the labs created by our colleague [Evgeny A. Stepanov](https://github.com/esrel). -->
+The notebooks that you can find here are an adaptation of the labs created by our colleague [Evgeny A. Stepanov](https://github.com/esrel).
