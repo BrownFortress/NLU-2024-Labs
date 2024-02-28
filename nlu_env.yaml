@@ -1,4 +1,4 @@
-name: nlu
+name: nlu2024
 channels:
   - conda-forge
   - defaults

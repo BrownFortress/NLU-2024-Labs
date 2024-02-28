@@ -11,11 +11,20 @@ We suggest you install [Anaconda](https://www.anaconda.com/download) on your lap
 conda env create -f nlu_env.yaml -n nlu24
 conda activate nlu24
 ```
+If you have a Mac or a Windows laptop or you do not have a dedicated Nvidia gpu, you can install the environment in this way:
+
+```bash
+conda create -n nlu24 python=3.10.13
+conda activate nlu24
+pip install -r requirements_no_cuda.txt
+```
 
 To launch a lab run this line of code:
 ```bash
 jupyter notebook
 ```
+
+
 Then, you have to choose the lab that you want to open. 
 
 <br>
