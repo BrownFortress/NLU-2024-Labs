@@ -11,7 +11,7 @@ We suggest you install [Anaconda](https://www.anaconda.com/download) on your lap
 conda env create -f nlu_env.yaml -n nlu24
 conda activate nlu24
 ```
-If you have a Mac or a Windows or you do not have a dedicated Nvidia gpu, you can install the environment in this way:
+If you have a Mac or a WindowsA Multimodal Framework for State of Mind Assessment with Sentiment Pre-classification or you do not have a dedicated Nvidia gpu, you can install the environment in this way:
 
 ```bash
 conda create -n nlu24 python=3.10.13
