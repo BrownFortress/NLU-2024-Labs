@@ -89,3 +89,11 @@ if __name__ == "__main__":
     best_model.to(device)
     final_ppl,  _ = eval_loop(test_loader, criterion_eval, best_model)
     print('Test ppl: ', final_ppl)
+
+    # To save the model
+    path = 'bin/best_model.pt'
+    torch.save(model.state_dict(), path)
+    # To load the model you need to initialize it
+    # model = LM_LSTM(emb_size, hid_size, vocab_len, pad_index=lang.word2id["<pad>"]).to(device)
+    # Then you load it
+    # model.load_state_dict(torch.load(path))
