@@ -38,15 +38,11 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=128, collate_fn=partial(collate_fn, pad_token=lang.word2id["<pad>"], device=device))
 
 
+    # hyperparams
     hid_size = 200
     emb_size = 300
-
-    # Don't forget to experiment with a lower training batch size
-    # Increasing the back propagation steps can be seen as a regularization step
-
-    # With SGD try with an higher learning rate (> 1 for instance)
-    lr = 1e-3 # This is definitely not good for SGD
-    clip = 5 # Clip the gradient
+    lr = 1e-3
+    clip = 5 #clip the gradient
 
     vocab_len = len(lang.word2id)
 
@@ -93,6 +89,7 @@ if __name__ == "__main__":
     # To save the model
     path = 'bin/best_model.pt'
     torch.save(model.state_dict(), path)
+    
     # To load the model you need to initialize it
     # model = LM_LSTM(emb_size, hid_size, vocab_len, pad_index=lang.word2id["<pad>"]).to(device)
     # Then you load it
