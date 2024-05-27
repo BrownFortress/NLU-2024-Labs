@@ -77,7 +77,7 @@ if __name__ == "__main__":
     #If the PPL is too high try to change the learning rate
     for epoch in pbar:
         loss = train_loop(train_loader, optimizer, criterion_train, model, clip)
-        if epoch % 5 == 0:
+        if epoch % 1 == 0:
             sampled_epochs.append(epoch)
             losses_train.append(np.asarray(loss).mean())
             ppl_dev, loss_dev = eval_loop(dev_loader, criterion_eval, model)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
                 # "a non-monotonic criterion that conservatively triggers the
                 # averaging when the validation metric fails to improve for multiple cycles"
 
-                if not ntasgd_trigger and ppl_dev > min(ppls_dev[-ntasgd_interval:]):
+                if not ntasgd_trigger and ppl_dev > min(ppls_dev[:-ntasgd_interval]):
                     print("switching to ASGD")
                     ntasgd_trigger = True
                     optimizer = torch.optim.ASGD(
