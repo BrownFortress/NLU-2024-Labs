@@ -35,39 +35,28 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=128, collate_fn=partial(collate_fn, pad_token=lang.word2id["<pad>"], device=device))
 
 
-
-    # Apply weight tying, same size for both layers
-    emb_size = 300
-    hid_size = 300
-
-    # Don't forget to experiment with a lower training batch size
-    # Increasing the back propagation steps can be seen as a regularization step
-
-    # SGD optimizer in use
-    lr = 10
-    clip = 5 # Clip the gradient
-
+    # hyperparams
+    emb_size = 256
+    hid_size = 256
+    lr = 1e-3
+    clip = 5 # clip the gradient
     vocab_len = len(lang.word2id)
 
     model = LM_LSTM(emb_size=emb_size,
                     hidden_size=hid_size,
                     output_size=vocab_len,
-                    pad_index=lang.word2id["<pad>"]
+                    pad_index=lang.word2id["<pad>"],
+                    dropout_p=0.7
                     ).to(device)
     model.apply(init_weights)
 
-    optimizer = optim.SGD(model.parameters(), lr=lr)
+    optimizer = optim.AdamW(model.parameters(), lr=lr)
     criterion_train = nn.CrossEntropyLoss(ignore_index=lang.word2id["<pad>"])
     criterion_eval = nn.CrossEntropyLoss(ignore_index=lang.word2id["<pad>"], reduction='sum')
 
-
-
-    # Version 2 of NT-AvSGD
-
-    # Training loop using AverageSGD
-
+    # hyperparams
     n_epochs = 100
-    patience = 6
+    patience = 3
     losses_train = []
     ppls_dev = []
     sampled_epochs = []
@@ -77,7 +66,7 @@ if __name__ == "__main__":
 
     ntasgd_interval = 5 # non-monotone interval - # of epochs of non-improving valid loss after which NT-ASGD is triggered
     ntasgd_trigger = False # ntasgd_trigger (bool): Indicates whether NT-ASGD has been triggered.
-    asgd_lr = 10
+    asgd_lr = 1e-2
 
     # params in the paper
     # `t` is a counter for the number of epochs, after each epoch is executed it is incremented
@@ -88,7 +77,7 @@ if __name__ == "__main__":
     #If the PPL is too high try to change the learning rate
     for epoch in pbar:
         loss = train_loop(train_loader, optimizer, criterion_train, model, clip)
-        if epoch % 1 == 0:
+        if epoch % 5 == 0:
             sampled_epochs.append(epoch)
             losses_train.append(np.asarray(loss).mean())
             ppl_dev, loss_dev = eval_loop(dev_loader, criterion_eval, model)
@@ -102,20 +91,21 @@ if __name__ == "__main__":
                 # "a non-monotonic criterion that conservatively triggers the
                 # averaging when the validation metric fails to improve for multiple cycles"
 
-                if not ntasgd_trigger and ppl_dev > min(ppls_dev[:-ntasgd_interval]):
+                if not ntasgd_trigger and ppl_dev > min(ppls_dev[-ntasgd_interval:]):
                     print("switching to ASGD")
                     ntasgd_trigger = True
                     optimizer = torch.optim.ASGD(
                                     model.parameters(),
                                     lr=asgd_lr,
                                     t0=0,
-                                    lambd=0.,
-                                    weight_decay=1e-6)
+                                    # lambd=0.,
+                                    weight_decay=1e-6
+                                    )
             # if non-monotone criterion for NT-ASGD never triggers we use patience
             if  ppl_dev < best_ppl: # the lower, the better
                 best_ppl = ppl_dev
                 best_model = copy.deepcopy(model).to('cpu') # save to cpu memory
-                patience = 6 # reset patience
+                patience = 3 # reset patience
             else:
                 patience -= 1
             if patience <= 0: # Early stopping with patience
