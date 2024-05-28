@@ -34,20 +34,22 @@ class VariationalDropout(nn.Module):
         return input * self._mask.to(device)
     
 class LM_LSTM(nn.Module):
-    def __init__(self, emb_size, hidden_size, output_size, pad_index=0, dropout_p=0.1, n_layers=1):
+    def __init__(self, emb_size, hidden_size, output_size, pad_index=0, dropout_p=0.1, dropout_k=0.1, n_layers=1):
         super(LM_LSTM, self).__init__()
         # Token ids to vectors, we will better see this in the next lab
         self.embedding = nn.Embedding(output_size, emb_size, padding_idx=pad_index) # output: (batch_size, vocab_size, emb_size)
         self.dropout = VariationalDropout(p=dropout_p)
+        self.dropout_k = VariationalDropout(p=dropout_k)
+
         # self.rnns = [nn.LSTM(emb_size, hidden_size) for _ in range(n_layers)]
-        self.rnn = nn.LSTM(emb_size, hidden_size)
+        self.lstm = nn.LSTM(emb_size, hidden_size, num_layers=n_layers, bidirectional=False, batch_first=True)
         self.pad_token = pad_index
         self.nlayers = n_layers
 
         # Linear layer to project the hidden layer to our output space
-        self.output = nn.Linear(hidden_size, output_size) # output: (batch_size, hidden_size, vocab_size)
+        self.linear_output = nn.Linear(hidden_size, output_size) # output: (batch_size, hidden_size, vocab_size)
         # tying weights: weights between the embedding and softmax layer are shared
-        self.output.weight = self.embedding.weight
+        self.linear_output.weight = self.embedding.weight
         # print(self.output.weight.shape, self.embedding.weight.shape)
 
 
@@ -55,8 +57,8 @@ class LM_LSTM(nn.Module):
         emb = self.embedding(input_sequence)
         # print(f'embedding layer shape={emb.shape}')
         emb = self.dropout(emb)
-        output, _ = self.rnn(emb)
-        output = self.dropout(output)
-        output = self.output(output).permute(0,2,1)
+        output, self.hidden = self.lstm(emb)
+        output = self.dropout_k(output)
+        output = self.linear_output(output)        
 
-        return output
+        return output.permute(0,2,1)
