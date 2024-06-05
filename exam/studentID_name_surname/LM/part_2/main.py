@@ -45,7 +45,7 @@ if __name__ == "__main__":
         import wandb
         init_wandb()
 
-    print(f'Running script in mode: {mode}. If you desire to change it use the -mode argument, i.e. python main.py -mode eval')
+    print(f'Running script in mode: {mode}. If you desire to change it use the --mode argument, i.e. python main.py --mode train')
 
     train_raw = read_file("dataset/PennTreeBank/ptb.train.txt")
     dev_raw = read_file("dataset/PennTreeBank/ptb.valid.txt")
