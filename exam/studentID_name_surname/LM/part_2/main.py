@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 import argparse
 import os
 
+torch.manual_seed(0)
 
 def init_args():
     parser = argparse.ArgumentParser(description="Bert training for Aspect Term Extraction (ATE)")

@@ -13,6 +13,7 @@ import torch.optim as optim
 from functools import partial
 from torch.utils.data import DataLoader
 
+torch.manual_seed(0)
 
 def init_args():
     parser = argparse.ArgumentParser(description="Next token prediction task arguments.")
