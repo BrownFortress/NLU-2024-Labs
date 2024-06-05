@@ -102,6 +102,6 @@ if __name__ == "__main__":
         lang = checkpoint['lang']
         model = LM_LSTM(emb_size, hid_size, vocab_len, pad_index=lang.word2id["<pad>"]).to(device)
         model.load_state_dict(checkpoint['state_dict'])
-        final_ppl,  _ = eval_loop(test_loader, criterion_eval, model, device)
+        final_ppl,  _ = eval_loop(test_loader, criterion_eval, model)
 
         print('Test PPL: ', final_ppl)
