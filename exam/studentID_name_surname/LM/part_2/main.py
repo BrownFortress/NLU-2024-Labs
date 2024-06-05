@@ -107,7 +107,7 @@ if __name__ == "__main__":
     w_decay = 1e-6
 
     config = None
-    if mode == 'train':
+    if mode == 'train' and use_wandb == 'true':
         #wandb: Define your config
         config = wandb.config
         config.epochs = n_epochs
