@@ -191,6 +191,6 @@ if __name__ == "__main__":
                     dropout_k=drop_k
                     ).to(device)
         model.load_state_dict(checkpoint['state_dict'])
-        final_ppl,  _ = eval_loop(test_loader, criterion_eval, model, device)
+        final_ppl,  _ = eval_loop(test_loader, criterion_eval, model)
 
         print('Test PPL: ', final_ppl)
