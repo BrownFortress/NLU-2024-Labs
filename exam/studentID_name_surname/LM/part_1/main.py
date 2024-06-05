@@ -7,7 +7,6 @@ from model import *
 from utils import *
 from tqdm import tqdm
 
-import copy
 import argparse
 import numpy as np
 import torch.optim as optim
@@ -88,7 +87,6 @@ if __name__ == "__main__":
                 pbar.set_description("PPL: %f" % ppl_dev)
                 if  ppl_dev < best_ppl: # the lower, the better
                     best_ppl = ppl_dev
-                    best_model = copy.deepcopy(model).to('cpu')
                     model_info = {'state_dict': model.state_dict(), 'lang':lang}
                     torch.save(model_info, model_path)
                     patience = 3

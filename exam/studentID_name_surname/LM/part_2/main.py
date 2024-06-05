@@ -6,27 +6,46 @@ from model import *
 from utils import *
 from tqdm import tqdm
 
-import copy
 import numpy as np
 import torch.optim as optim
 from functools import partial
 from torch.utils.data import DataLoader
-import wandb
+import argparse
 import os
 
-# Set your Wandb token
-wandb_token = os.environ["WANDB_TOKEN"]
 
-# Login to wandb
-wandb.login(key=wandb_token)
+def init_args():
+    parser = argparse.ArgumentParser(description="Bert training for Aspect Term Extraction (ATE)")
+    parser.add_argument("--mode", type=str, default='eval', help="Model mode: train or eval")
+    parser.add_argument("--use_wandb", type=str, default='true', help="Use wandb to log training results.")
+    return parser
 
-# Initialize wandb
-wandb.init(project="nlu-assignmet1-part2", allow_val_change=True)
+def init_wandb():
+    # Set your Wandb token
+    wandb_token = os.environ["WANDB_TOKEN"]
+
+    # # Login to wandb
+    wandb.login(key=wandb_token)
+
+    # # Initialize wandb
+    wandb.init(project="nlu-assignmet1-part2", allow_val_change=True)
 
 if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f'The device selected: {device}')
 
     # load data
+    parser = init_args()
+    model_path = 'bin/best_model.pt'
+
+    mode = parser.parse_args().mode
+    use_wandb = parser.parse_args().use_wand
+    if mode == 'train' and use_wandb == 'true':
+        import wandb
+        init_wandb()
+
+    print(f'Running script in mode: {mode}. If you desire to change it use the -mode argument, i.e. python main.py -mode eval')
+
     train_raw = read_file("dataset/PennTreeBank/ptb.train.txt")
     dev_raw = read_file("dataset/PennTreeBank/ptb.valid.txt")
     test_raw = read_file("dataset/PennTreeBank/ptb.test.txt")
@@ -86,21 +105,23 @@ if __name__ == "__main__":
     asgd_lr = 0.13
     w_decay = 1e-6
 
-    #wandb: Define your config
-    config = wandb.config
-    config.epochs = n_epochs
-    config.learning_rate = lr
-    config.asgd_lr = asgd_lr
-    config.batch_size = BATCH_SIZE
-    config.emb_size = emb_size
-    config.hidden_size = hid_size
-    config.dropout_emb = drop_p
-    config.dropout_lstm = drop_k
-    config.weight_decay = w_decay
-    config.num_lstm_layers = n_layers
-    config.ntasgd_interval = ntasgd_interval
-    config.momentum = 0.9
-    print(config)
+    config = None
+    if mode == 'train':
+        #wandb: Define your config
+        config = wandb.config
+        config.epochs = n_epochs
+        config.learning_rate = lr
+        config.asgd_lr = asgd_lr
+        config.batch_size = BATCH_SIZE
+        config.emb_size = emb_size
+        config.hidden_size = hid_size
+        config.dropout_emb = drop_p
+        config.dropout_lstm = drop_k
+        config.weight_decay = w_decay
+        config.num_lstm_layers = n_layers
+        config.ntasgd_interval = ntasgd_interval
+        config.momentum = 0.9
+        print(config)
 
     # params in the paper
     # `t` is a counter for the number of epochs, after each epoch is executed it is incremented
@@ -108,60 +129,67 @@ if __name__ == "__main__":
     # obtained is smaller than what we have stored in the last [:-n] logs (without considering last n)
     # In this code the flag `ntasgd_trigger` is equivalent to `T` in the paper algorithm.
 
-    #If the PPL is too high try to change the learning rate
-    for epoch in pbar:
-        loss = train_loop(train_loader, optimizer, criterion_train, model, clip)
-        if epoch % 1 == 0:
-            sampled_epochs.append(epoch)
-            losses_train.append(np.asarray(loss).mean())
-            # Log training loss to wandb
-            wandb.log({"train_loss": np.asarray(loss).mean()})
-            ppl_dev, loss_dev = eval_loop(dev_loader, criterion_eval, model)
-            ppls_dev.append(np.asarray(ppl_dev).mean())
-            # Log validation loss to wandb
-            wandb.log({"val_loss": np.asarray(loss_dev).mean()})
-            wandb.log({"val PPL": np.asarray(ppl_dev).mean()})
-            pbar.set_description("PPL: %f" % ppl_dev)
+    if mode == 'train':
+        for epoch in pbar:
+            loss = train_loop(train_loader, optimizer, criterion_train, model, clip)
+            if epoch % 1 == 0:
+                sampled_epochs.append(epoch)
+                losses_train.append(np.asarray(loss).mean())
+                # Log training loss to wandb
+                if use_wandb == 'true':
+                    wandb.log({"train_loss": np.asarray(loss).mean()})
+                ppl_dev, loss_dev = eval_loop(dev_loader, criterion_eval, model)
+                ppls_dev.append(np.asarray(ppl_dev).mean())
+                if use_wandb == 'true':
+                    # Log validation loss to wandb
+                    wandb.log({"val_loss": np.asarray(loss_dev).mean()})
+                    wandb.log({"val PPL": np.asarray(ppl_dev).mean()})
+                pbar.set_description("PPL: %f" % ppl_dev)
 
-            # Check non-monotone criterion for NT-ASGD
-            if not ntasgd_trigger and epoch > ntasgd_interval:
-                # as long as the trigger criterion is not met,
-                # we compute the gradient and apply SGD to update the weights
-                # "a non-monotonic criterion that conservatively triggers the
-                # averaging when the validation metric fails to improve for multiple cycles"
+                # Check non-monotone criterion for NT-ASGD
+                if not ntasgd_trigger and epoch > ntasgd_interval:
+                    # as long as the trigger criterion is not met,
+                    # we compute the gradient and apply SGD to update the weights
+                    # "a non-monotonic criterion that conservatively triggers the
+                    # averaging when the validation metric fails to improve for multiple cycles"
 
-                if not ntasgd_trigger and ppl_dev > min(ppls_dev[:-ntasgd_interval]):
-                    print("switching to ASGD")
-                    ntasgd_trigger = True
-                    optimizer = torch.optim.ASGD(
-                                    model.parameters(),
-                                    lr=asgd_lr,
-                                    t0=0,
-                                    lambd=0.,
-                                    weight_decay=w_decay
-                                    )
-                    # config.update({"learning_rate": asgd_lr}, allow_val_change=True)
-                    # print(config)
-            # if non-monotone criterion for NT-ASGD never triggers we use patience
-            if  ppl_dev < best_ppl: # the lower, the better
-                best_ppl = ppl_dev
-                best_model = copy.deepcopy(model).to('cpu') # save to cpu memory
-                patience = PATIENCE # reset patience
-            else:
-                patience -= 1
-            if patience <= 0: # Early stopping with patience
-                print("Early stopping with patience")
-                print(f"ASGD flag={ntasgd_trigger}")
-                break
+                    if not ntasgd_trigger and ppl_dev > min(ppls_dev[:-ntasgd_interval]):
+                        print("switching to ASGD")
+                        ntasgd_trigger = True
+                        optimizer = torch.optim.ASGD(
+                                        model.parameters(),
+                                        lr=asgd_lr,
+                                        t0=0,
+                                        lambd=0.,
+                                        weight_decay=w_decay
+                                        )
+                        
+                # if non-monotone criterion for NT-ASGD never triggers we use patience
+                if  ppl_dev < best_ppl: # the lower, the better
+                    best_ppl = ppl_dev
+                    model_info = {'state_dict': model.state_dict(), 'lang':lang}
+                    torch.save(model_info, model_path)
+                    patience = PATIENCE # reset patience
+                else:
+                    patience -= 1
+                if patience <= 0: # Early stopping with patience
+                    print("Early stopping with patience")
+                    print(f"ASGD flag={ntasgd_trigger}")
+                    break
+    else:
+        print("*You are in evaluation mode*")
+        # Load model
+        checkpoint = torch.load(model_path)
+        lang = checkpoint['lang']
+        model = LM_LSTM(emb_size=emb_size,
+                    hidden_size=hid_size,
+                    output_size=vocab_len,
+                    n_layers=n_layers,
+                    pad_index=lang.word2id["<pad>"],
+                    dropout_p=drop_p,
+                    dropout_k=drop_k
+                    ).to(device)
+        model.load_state_dict(checkpoint['state_dict'])
+        final_ppl,  _ = eval_loop(test_loader, criterion_eval, best_model)
 
-    best_model.to(device)
-    final_ppl,  _ = eval_loop(test_loader, criterion_eval, best_model)
-    print('Test ppl: ', final_ppl)
-
-    # To save the model
-    path = 'bin/best_model.pt'
-    torch.save(model.state_dict(), path)
-    # To load the model you need to initialize it
-    # model = LM_LSTM(emb_size, hid_size, vocab_len, pad_index=lang.word2id["<pad>"]).to(device)
-    # Then you load it
-    # model.load_state_dict(torch.load(path))
+        print('Test PPL: ', final_ppl)
