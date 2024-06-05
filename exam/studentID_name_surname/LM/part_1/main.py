@@ -16,7 +16,7 @@ from torch.utils.data import DataLoader
 
 def init_args():
     parser = argparse.ArgumentParser(description="Next token prediction task arguments.")
-    parser.add_argument("-mode", type=str, default='eval', help="Model mode: train or eval")
+    parser.add_argument("--mode", type=str, default='eval', help="Model mode: train or eval")
     return parser
 
 if __name__ == "__main__":
