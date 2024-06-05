@@ -39,7 +39,7 @@ if __name__ == "__main__":
     model_path = 'bin/best_model.pt'
 
     mode = parser.parse_args().mode
-    use_wandb = parser.parse_args().use_wand
+    use_wandb = parser.parse_args().use_wandb
     if mode == 'train' and use_wandb == 'true':
         import wandb
         init_wandb()
