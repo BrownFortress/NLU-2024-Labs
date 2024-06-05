@@ -12,7 +12,7 @@ def train_loop(data, optimizer, criterion, model, device, clip=5):
 
     for sample in data:
         optimizer.zero_grad() # Zeroing the gradient
-        output = model(sample['source'])
+        output = model(sample['source'].to(device))
         loss = criterion(output, sample['target'])
         loss_array.append(loss.item() * sample["number_tokens"])
         number_of_tokens.append(sample["number_tokens"])
@@ -23,7 +23,7 @@ def train_loop(data, optimizer, criterion, model, device, clip=5):
 
     return sum(loss_array)/sum(number_of_tokens)
 
-def eval_loop(data, eval_criterion, model):
+def eval_loop(data, eval_criterion, model, device):
     model.eval()
     loss_to_return = []
     loss_array = []
@@ -31,7 +31,7 @@ def eval_loop(data, eval_criterion, model):
     # softmax = nn.Softmax(dim=1) # Use Softmax if you need the actual probability
     with torch.no_grad(): # It used to avoid the creation of computational graph
         for sample in data:
-            output = model(sample['source'])
+            output = model(sample['source'].to(device))
             loss = eval_criterion(output, sample['target'])
             loss_array.append(loss.item())
             number_of_tokens.append(sample["number_tokens"])
